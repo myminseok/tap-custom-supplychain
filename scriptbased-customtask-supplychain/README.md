@@ -1,9 +1,8 @@
+## procedure to apply custom tasks on custom supply chain for TAP.
+testd on TAP 1.8
 
 
-## Apply all resources to TAP.
-
-#### cluster-run-template.yml 
-
+#### [cluster-run-template.yml](cluster-run-template.yml)
 ```
 kubectl apply -f cluster-run-template.yml 
 k get clusterruntemplate
@@ -12,7 +11,7 @@ tekton-custom-taskrun       6s
 tekton-source-pipelinerun   8d
 ```
 
-#### cluster-source-template.yml 
+#### [cluster-source-template.yml](cluster-source-template.yml)
 ```
 kubectl apply -f cluster-source-template.yml 
 k get clustersourcetemplates
@@ -22,19 +21,56 @@ delivery-source-template   8d
 source-scanner-template    8d
 source-template            8d
 testing-pipeline           8d
-
 ```
 
-#### edit and apply source-test-to-url-custom.yml
+#### edit and apply [source-test-to-url-custom.yml](source-test-to-url-custom.yml)
+create a new `source-test-to-url-custom` clustersupplychain by duplicate existing `source-test-to-url` clustersupplychain. please note that it should be fetched the TAP to be used as there are existing TAP dependent params in it
 
 ```
-k get clustersupplychain source-test-to-url -o yaml > source-test-to-url.yml
-cp source-test-to-url.yml source-test-to-url-custom.yml
+k get clustersupplychains source-test-scan-to-url -o yaml > source-test-scan-to-url.yml
+cp source-test-scan-to-url.yml source-test-scan-to-url-sonarqube.yml
 ```
 
+and update [source-test-to-url-custom.yml](source-test-to-url-custom.yml) for parameters according to you environment. 
+```
+apiVersion: carto.run/v1alpha1
+kind: ClusterSupplyChain
+metadata:
+  name: source-test-to-url-custom
+spec:
+...
+  - name: source-tester
+    sources:
+    - name: source
+      resource: source-provider
+    templateRef:
+      kind: ClusterSourceTemplate
+      name: testing-pipeline
+  ## added
+  - name: custom-task
+    sources:
+    - name: source
+      resource: source-tester
+    templateRef:
+      kind: ClusterSourceTemplate
+      name: custom-template
+  selector:
+    apps.tanzu.vmware.com/has-tests: "true"
+    apps.tanzu.vmware.com/use-custom: "true"  # added this as a selector
+     ...
+
+```
+> rename to unique supplychain name: `source-test-to-url-custom`
+> add `custom-task` task
+> add `apps.tanzu.vmware.com/use-custom: "true"` selector.
+
+
+apply [source-test-to-url-custom.yml](source-test-to-url-custom.yml) 
 ```
 kubectl delete -f source-test-to-url-custom.yml
 kubectl apply -f source-test-to-url-custom.yml
+```
+```
 k get clustersupplychains
 NAME                        READY   REASON   AGE
 source-test-to-url          True    Ready    6d19h
@@ -58,22 +94,35 @@ kubectl apply -f task.yml -n $DEVELOPER_NAMESPACE
 ```
 refer to [maven document](https://maven.apache.org/plugins/maven-deploy-plugin/usage.html) for publishing jar artifacts to nexus.
 
-####  rbac.yml, testing
+####  rbac.yml
+you needs to set permission to serviceaccount to list `Task` resources with `rbac.yml`
 ```
 export DEVELOPER_NAMESPACE=my-space
 
 kubectl apply -f rbac.yml -n $DEVELOPER_NAMESPACE
 kubectl apply -f tekton-pipeline-testing-pipeline.yml -n $DEVELOPER_NAMESPACE
 ```
+####   tekton-pipeline-testing-pipeline.yml
+add tekton pipline for testing
+```
+export DEVELOPER_NAMESPACE=my-space
+kubectl apply -f tekton-pipeline-testing-pipeline.yml -n $DEVELOPER_NAMESPACE
+```
 
-#### apply secrets and workload.
+#### apply secrets 
+artifcatory access credentials. this will be injected to `task.yml`. 
 ```
 export DEVELOPER_NAMESPACE=my-space
 kubectl apply -f artifactory-credentials.yaml  -n $DEVELOPER_NAMESPACE
+```
+
+
+#### workload.
+```
+export DEVELOPER_NAMESPACE=my-space
 tanzu apps workload delete tanzu-java-web-app -n ${DEVELOPER_NAMESPACE} 
 tanzu apps workload apply -f ./workload-tanzu-java-web-app.yaml --yes   -n ${DEVELOPER_NAMESPACE}
 ```
-
 
 ## parameter flow
 workload -> supply-chain -> clustersourcetemplate -> clusterruntemplate -> task(load env from secrets ) => steps(using param,env)
@@ -154,3 +203,6 @@ tanzu-java-web-app-customtask-4nlqj-pod[step-custom-task] ca+_from_secret
 tanzu-java-web-app-customtask-4nlqj-pod[step-custom-task] -----END CERTIFICATE-----
 tanzu-java-web-app-customtask-4nlqj-pod[step-custom-task]
 ```
+
+## reference
+tanzu supply chain(beta): https://docs.vmware.com/en/VMware-Tanzu-Application-Platform/1.8/tap/supply-chain-about.html
