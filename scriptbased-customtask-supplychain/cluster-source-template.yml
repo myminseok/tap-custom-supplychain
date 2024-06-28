@@ -1,0 +1,88 @@
+apiVersion: carto.run/v1alpha1
+kind: ClusterSourceTemplate
+metadata:
+  labels:
+    apps.tanzu.vmware.com/use-custom: "true" # TODO for custom workload
+  annotations:
+  #! TODO match name in supply chain
+  name: custom-template 
+spec:
+  revisionPath: .status.outputs.revision
+  urlPath: .status.outputs.url
+
+  healthRule:
+    singleConditionType: Ready
+
+  # TODO optional. set params to pass over to ClusterRunTemplate if it is not from workload.yml
+  params:
+    - name: artifactory_host
+      default: "http://default-from-clustersourcetemplate"
+    - name: artifactory_user
+      default: "default-user-from-clustersourcetemplate"
+    - name: artifactory_password
+      default: "default-pass-from-clustersourcetemplate"
+
+  ytt: |
+    #@ load("@ytt:data", "data")
+
+    #@ def merge_labels(fixed_values):
+    #@   labels = {}
+    #@   if hasattr(data.values.workload.metadata, "labels"):
+    #@     labels.update(data.values.workload.metadata.labels)
+    #@   end
+    #@   labels.update(fixed_values)
+    #@   return labels
+    #@ end
+
+
+    #! TODO optional. add this to set params from workload.yml
+    #@ def merged_tekton_params():
+    #@   params = []
+    #@   if hasattr(data.values, "params") and hasattr(data.values.params, "testing_pipeline_params"):
+    #@     for param in data.values.params["testing_pipeline_params"]:
+    #@       params.append({ "name": param, "value": data.values.params["testing_pipeline_params"][param] })
+    #@     end
+    #@   end
+    #! TODO optional. add this to set params from workload.yml
+    #@   params.append({ "name": "source-url", "value": data.values.source.url })
+    #@   params.append({ "name": "source-revision", "value": data.values.source.revision })
+    #@   params.append({ "name": "artifactory_host", "value": data.values.params.artifactory_host })  
+    #@   params.append({ "name": "artifactory_user", "value": data.values.params.artifactory_user })  
+    #@   params.append({ "name": "artifactory_password", "value": data.values.params.artifactory_password })    
+    #@   return params
+    #@ end
+
+    apiVersion: carto.run/v1alpha1
+    kind: Runnable
+    metadata:
+      name: #@ data.values.workload.metadata.name + "-customtask"
+      labels: #@ merge_labels({ "app.kubernetes.io/component": "test" })
+    spec:
+      #@ if hasattr(data.values.workload.spec, "serviceAccountName"):
+      serviceAccountName: #@ data.values.workload.spec.serviceAccountName
+      #@ else:
+      serviceAccountName: default
+      #@ end
+
+      runTemplateRef:
+        #! TODO match name with ClusterRunTemplate
+        name: custom-tekton-taskrun 
+        kind: ClusterRunTemplate
+
+      selector:
+        resource:
+          apiVersion: tekton.dev/v1beta1
+          kind: Task
+
+        #! TODO to match selector
+        matchingLabels:
+          apps.tanzu.vmware.com/use-custom: "true"
+          
+      inputs:
+        #@ if hasattr(data.values.workload.spec, "serviceAccountName"):
+        serviceAccountName: #@ data.values.workload.spec.serviceAccountName
+        #@ else:
+        serviceAccountName: default
+        #@ end
+
+        tekton-params: #@ merged_tekton_params()
