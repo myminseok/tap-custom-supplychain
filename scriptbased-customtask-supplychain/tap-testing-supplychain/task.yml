@@ -5,17 +5,17 @@
 apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
-  name: actual-custom-task
+  name: custom-tekton-task
   labels:
     app.kubernetes.io/version: "0.2"
     apps.tanzu.vmware.com/use-custom: "true"  # (!) required
-    # apps.tanzu.vmware.com/pipeline: test  # (!) no need
-    # apps.tanzu.vmware.com/language: java  # (!) no need
+    # apps.tanzu.vmware.com/pipeline: test  # (!) optional. only for TAP testing supplychain
+    # apps.tanzu.vmware.com/language: java  # (!) optional. only for TAP testing supplychain
   annotations:
     tekton.dev/pipelines.minVersion: "0.12.1"
     tekton.dev/categories: Security
     tekton.dev/tags: security
-    tekton.dev/displayName: "actual-custom-task"
+    tekton.dev/displayName: "custom-tekton-task"
     tekton.dev/platforms: "linux/amd64"
 spec:
   description: >-
@@ -42,15 +42,6 @@ spec:
     - name: tmp-workspace
 
   steps:
-    # - name: compile                                ## (!) no need this step.
-    #   image: gradle:latest
-    #   workingDir: $(workspaces.tmp-workspace.path)
-    #   script: |
-    #     #!/usr/bin/env bash
-    #     set -ex
-    #     wget -qO- $(params.source-url) | tar xvz
-    #     #./mvnw compile -Dmaven.repo.local=$(workspaces.tmp-workspace.path) -s $(workspaces.tmp-workspace.path)/settings.xml
-    #     #./mvnw compile
 
     - name: properties-create
       image: gradle:latest
@@ -78,8 +69,8 @@ spec:
             key: artifactory_ca_crt
       script: |
         #!/bin/bash
-        ## all paramter should be exist, and match . it will faill even it the line is commented out
-
+        ## all paramter should be exist, and match . it will fail even it the line is commented out
+        echo "##### custom-tekton-task"
         touch custom-project.properties
         
         echo "secret_artifactory_host=$secret_artifactory_host" >> custom-project.properties
@@ -106,6 +97,7 @@ spec:
       workingDir: $(workspaces.tmp-workspace.path)
       script: |
         #!/bin/bash
+        echo "##### custom-tekton-task"
         set -ex
         ## (!) requires to download source code 
         wget -qO- $(params.source-url) | tar xz
@@ -119,5 +111,12 @@ spec:
         # keytool -importcert -trustcacerts -cacerts -file $(workspaces.tmp-workspace.path)/artifactory_ca.crt -alias myCert -storepass changeit  -noprompt 
         fi
 
-        
-        
+    # - name: compile                                ## (!) optional step.
+    #   image: gradle:latest
+    #   workingDir: $(workspaces.tmp-workspace.path)
+    #   script: |
+    #     #!/usr/bin/env bash
+    #     set -ex
+    #     wget -qO- $(params.source-url) | tar xvz
+    #     #./mvnw compile -Dmaven.repo.local=$(workspaces.tmp-workspace.path) -s $(workspaces.tmp-workspace.path)/settings.xml
+    #     #./mvnw compile    

@@ -1,0 +1,120 @@
+#
+# ref: https://hub.tekton.dev/tekton/task/sonarqube-scanner
+# This file has been modified to include the SONAR_LOGIN parameter.
+#
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: custom-tekton-task-basic
+  labels:
+    app.kubernetes.io/version: "0.2"
+    apps.tanzu.vmware.com/use-custom-basic: "true"  # (!) required
+  annotations:
+    tekton.dev/pipelines.minVersion: "0.12.1"
+    tekton.dev/categories: Security
+    tekton.dev/tags: security
+    tekton.dev/displayName: "custom-tekton-task"
+    tekton.dev/platforms: "linux/amd64"
+spec:
+  description: >-
+    sample task from task.yml
+  ##
+  params:
+    - name: artifactory_host
+      description: Host URL where the server is running
+      default: "http://default-from-task:9000"
+    - name: artifactory_user
+      description: Auth for the project
+      default: "default-user-from-task"
+    - name: artifactory_password
+      description: Auth for the project
+      default: "default-pass-from-task"
+    - name: source-url
+      description: Location of the source code
+    - name: source-revision
+      description: Revision of the source code
+    - name: tokenSecretName
+      default: "artifactory-credentials"
+
+  workspaces:
+    - name: tmp-workspace
+
+  steps:
+
+    - name: properties-create
+      image: gradle:latest
+      workingDir: $(workspaces.tmp-workspace.path)
+      env:
+      - name: secret_artifactory_host  ## add this
+        valueFrom:
+          secretKeyRef:
+            name: $(params.tokenSecretName)
+            key: artifactory_host
+      - name: secret_artifactory_password  ## add this
+        valueFrom:
+          secretKeyRef:
+            name: $(params.tokenSecretName)
+            key: artifactory_password
+      - name: secret_artifactory_user  ## add this
+        valueFrom:
+          secretKeyRef:
+            name: $(params.tokenSecretName)
+            key: artifactory_user
+      - name: secret_artifactory_ca_crt  ## add this
+        valueFrom:
+          secretKeyRef:
+            name: $(params.tokenSecretName)
+            key: artifactory_ca_crt
+      script: |
+        #!/bin/bash
+        ## all paramter should be exist, and match . it will fail even it the line is commented out
+        echo "##### custom-tekton-task-basic"
+        touch custom-project.properties
+        
+        echo "secret_artifactory_host=$secret_artifactory_host" >> custom-project.properties
+        echo "artifactory_host=$(params.artifactory_host)" >> custom-project.properties
+
+        echo "secret_artifactory_user=$secret_artifactory_user" >> custom-project.properties
+        echo "artifactory_user=$(params.artifactory_user)" >> custom-project.properties
+
+        echo "secret_artifactory_password=$secret_artifactory_password" >> custom-project.properties
+        echo "artifactory_password=$(params.artifactory_password)" >> custom-project.properties
+
+        echo ""
+        echo "# $(workspaces.tmp-workspace.path)/custom-project.properties ---------------------------"
+        cat $(workspaces.tmp-workspace.path)/custom-project.properties 
+        echo ""
+        if [ "$secret_artifactory_ca_crt" != "" ]; then  
+          echo "# secret_artifactory_ca_crt env detected ---------------------------"
+          echo "$secret_artifactory_ca_crt"  > $(workspaces.tmp-workspace.path)/artifactory_ca.crt
+          cat $(workspaces.tmp-workspace.path)/artifactory_ca.crt
+        fi
+
+    - name: custom-task
+      image: gradle:latest
+      workingDir: $(workspaces.tmp-workspace.path)
+      script: |
+        #!/bin/bash
+        echo "##### custom-tekton-task-basic"
+        set -ex
+        ## (!) requires to download source code 
+        wget -qO- $(params.source-url) | tar xz
+
+        cat $(workspaces.tmp-workspace.path)/custom-project.properties
+
+        echo "# importing server CA to truststore ---------------------------"
+        if [ -f $(workspaces.tmp-workspace.path)/artifactory_ca.crt ]; then  
+          cat $(workspaces.tmp-workspace.path)/artifactory_ca.crt
+        # echo "JAVA_HOME:$JAVA_HOME" ## JAVA_HOME:/usr/lib/jvm/java-11-openjdk
+        # keytool -importcert -trustcacerts -cacerts -file $(workspaces.tmp-workspace.path)/artifactory_ca.crt -alias myCert -storepass changeit  -noprompt 
+        fi
+
+    # - name: compile                                ## (!) optional step.
+    #   image: gradle:latest
+    #   workingDir: $(workspaces.tmp-workspace.path)
+    #   script: |
+    #     #!/usr/bin/env bash
+    #     set -ex
+    #     wget -qO- $(params.source-url) | tar xvz
+    #     #./mvnw compile -Dmaven.repo.local=$(workspaces.tmp-workspace.path) -s $(workspaces.tmp-workspace.path)/settings.xml
+    #     #./mvnw compile    
