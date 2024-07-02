@@ -1,5 +1,5 @@
 ## procedure to apply custom tasks on custom supply chain for TAP.
-testd on TAP 1.8
+tested on TAP 1.8
 
 
 ### design 
