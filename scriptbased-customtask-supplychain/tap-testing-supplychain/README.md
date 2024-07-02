@@ -1,8 +1,8 @@
-## procedure to apply custom tasks on custom supply chain for TAP.
-testd on TAP 1.8
+## Procedure to apply custom tasks on custom supply chain for TAP.
+tested on TAP 1.8
 
 
-#### selector/label matching
+#### Selector/label matching
 selector/label `apps.tanzu.vmware.com/use-custom: "true"` should be matched among follow resources:
 - workload -> supply-chain -> clustersourcetemplate -> clusterruntemplate -> task(load env from secrets ) 
 
@@ -11,7 +11,7 @@ selector/label should be mapped to 1:1 among all resources.
 #### Parameter flow
 workload -> supply-chain -> clustersourcetemplate -> clusterruntemplate -> task(load env from secrets ) => steps(using param,env)
 
-#### resource scope
+#### Resource scope
 cluster resource:
 - ClusterSupplyChain
 - ClusterSourceTemplate
