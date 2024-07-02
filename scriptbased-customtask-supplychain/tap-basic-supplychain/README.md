@@ -1,4 +1,4 @@
-## procedure to apply custom tasks on custom supply chain for TAP.
+## Procedure to apply custom tasks on custom supply chain for TAP.
 tested on TAP 1.8
 
 
@@ -13,7 +13,7 @@ selector/label should be mapped to 1:1 among all resources.
 #### Parameter flow
 workload -> supply-chain -> clustersourcetemplate -> clusterruntemplate -> task(load env from secrets ) => steps(using param,env)
 
-#### resource scope
+#### Resource scope
 cluster resource:
 - ClusterSupplyChain
 - ClusterSourceTemplate
