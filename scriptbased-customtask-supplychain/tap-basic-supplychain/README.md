@@ -2,10 +2,10 @@
 tested on TAP 1.8
 
 
-### design 
+### Design 
 
-#### selector/label matching
-selector/label `apps.tanzu.vmware.com/use-custom-basic: "true"` should be matched among follow resources:
+#### Selector/label matching
+selector/label `apps.tanzu.vmware.com/use-custom-basic: "true"` should be matched among following resources:
 - workload -> supply-chain -> clustersourcetemplate -> clusterruntemplate -> task(load env from secrets ) 
 
 selector/label should be mapped to 1:1 among all resources. 
