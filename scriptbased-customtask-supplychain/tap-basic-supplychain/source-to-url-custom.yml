@@ -79,7 +79,7 @@ spec:
       resource: source-provider
     templateRef:
       kind: ClusterSourceTemplate
-      name: custom-template
+      name: custom-template-basic
   selector:
     apps.tanzu.vmware.com/use-custom-basic: "true"  # added this as a selector
   selectorMatchExpressions:

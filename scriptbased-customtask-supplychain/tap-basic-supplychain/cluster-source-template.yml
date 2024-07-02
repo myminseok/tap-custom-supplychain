@@ -5,7 +5,7 @@ metadata:
     apps.tanzu.vmware.com/use-custom-basic: "true" # TODO for custom workload
   annotations:
   #! TODO match name in supply chain
-  name: custom-template 
+  name: custom-template-basic 
 spec:
   revisionPath: .status.outputs.revision
   urlPath: .status.outputs.url
@@ -59,7 +59,7 @@ spec:
 
       runTemplateRef:
         #! TODO match name with ClusterRunTemplate
-        name: custom-tekton-taskrun 
+        name: custom-tekton-taskrun-basic 
         kind: ClusterRunTemplate
 
       selector:

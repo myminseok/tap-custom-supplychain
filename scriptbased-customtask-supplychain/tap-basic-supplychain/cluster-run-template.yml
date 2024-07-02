@@ -1,7 +1,7 @@
 apiVersion: carto.run/v1alpha1
 kind: ClusterRunTemplate
 metadata:
-  name: custom-tekton-taskrun
+  name: custom-tekton-taskrun-basic
   labels:
     apps.tanzu.vmware.com/use-custom-basic: "true"  # TODO added this as a selector
 spec:

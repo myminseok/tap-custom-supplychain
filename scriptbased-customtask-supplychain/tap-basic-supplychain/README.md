@@ -33,7 +33,7 @@ namespace resource
 apiVersion: carto.run/v1alpha1
 kind: ClusterRunTemplate
 metadata:
-  name: custom-tekton-taskrun
+  name: custom-tekton-taskrun-basic
   labels:
     apps.tanzu.vmware.com/use-custom-basic: "true"  # TODO added this as a selector
   ...
@@ -44,7 +44,7 @@ metadata:
 kubectl apply -f cluster-run-template.yml 
 k get clusterruntemplate
 NAME                        AGE
-tekton-custom-taskrun       6s
+custom-tekton-taskrun-basic      6s
 tekton-source-pipelinerun   8d
 ```
 
@@ -58,7 +58,7 @@ metadata:
     apps.tanzu.vmware.com/use-custom-basic: "true" # TODO for custom workload
   annotations:
   #! TODO match name in supply chain
-  name: custom-template 
+  name: custom-template-basic   
   ...
     apiVersion: carto.run/v1alpha1
     kind: Runnable
@@ -79,7 +79,7 @@ metadata:
 kubectl apply -f cluster-source-template.yml 
 k get clustersourcetemplates
 NAME                       AGE
-custom-template            6s
+custom-template-basic      6s
 delivery-source-template   8d
 source-scanner-template    8d
 source-template            8d
@@ -115,7 +115,7 @@ spec:
       resource: source-provider
     templateRef:
       kind: ClusterConfigTemplate
-      name: convention-template
+      name: custom-template-basic
 
   selector:
     apps.tanzu.vmware.com/use-custom-basic: "true"  # added this as a selector
